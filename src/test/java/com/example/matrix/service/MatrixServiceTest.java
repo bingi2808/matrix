@@ -76,6 +76,26 @@ class MatrixServiceTest {
     }
 
     @Test
+    void parseCsvFile_ShouldThrowExceptionForValuesExceedingIntegerRange() {
+        MockMultipartFile outOfRangeFile = new MockMultipartFile(
+                "file", "invalid.csv", MediaType.TEXT_PLAIN_VALUE,
+                "2147483648,1\n2,3".getBytes()); // 2147483648 exceeds Integer.MAX_VALUE
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> matrixService.parseCsvFile(outOfRangeFile));
+        assertTrue(exception.getMessage().contains("Invalid number format"));
+    }
+
+    @Test
+    void parseCsvFile_ShouldThrowExceptionForValuesBelowIntegerRange() {
+        MockMultipartFile outOfRangeFile = new MockMultipartFile(
+                "file", "invalid.csv", MediaType.TEXT_PLAIN_VALUE,
+                "-2147483649,1\n2,3".getBytes()); // -2147483649 exceeds Integer.MIN_VALUE
+
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> matrixService.parseCsvFile(outOfRangeFile));
+        assertTrue(exception.getMessage().contains("Invalid number format"));
+    }
+
+    @Test
     void invertMatrix_ShouldTransposeCorrectly() {
         int[][] matrix = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
         int[][] result = matrixService.invertMatrix(matrix);
