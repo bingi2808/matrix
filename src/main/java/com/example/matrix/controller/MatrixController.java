@@ -42,7 +42,7 @@ public class MatrixController {
     }
 
     @PostMapping("/multiply")
-    public long multiplyMatrix(@RequestParam("file") MultipartFile file) throws Exception {
+    public Number multiplyMatrix(@RequestParam("file") MultipartFile file) throws Exception {
         int[][] matrix = matrixService.parseCsvFile(file);
         return matrixService.multiplyMatrix(matrix);
     }

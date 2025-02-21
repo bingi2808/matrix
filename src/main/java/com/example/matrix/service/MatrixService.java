@@ -9,6 +9,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.util.List;
+import java.math.BigInteger;
+
 
 @Service
 public class MatrixService {
@@ -24,6 +26,11 @@ public class MatrixService {
 
             int rowCount = records.size();
             int colCount = records.getFirst().size();
+
+            if (rowCount != colCount) {
+                throw new IllegalArgumentException("Matrix must be square (same number of rows and columns)");
+            }
+
             int[][] matrix = new int[rowCount][colCount];
 
             for (int i = 0; i < rowCount; i++) {
@@ -39,11 +46,6 @@ public class MatrixService {
                     }
                 }
             }
-
-            if (rowCount != colCount) {
-                throw new IllegalArgumentException("Matrix must be square (same number of rows and columns)");
-            }
-
             return matrix;
         }
     }
@@ -88,14 +90,28 @@ public class MatrixService {
         return sum;
     }
 
-    public long multiplyMatrix(int[][] matrix) {
+    public Number multiplyMatrix(int[][] matrix) {
         long product = 1;
+        BigInteger bigProduct = null; // Null until overflow occurs
+
         for (int[] row : matrix) {
             for (int value : row) {
-                product *= value;
+                if (bigProduct == null) { // Using long
+                    if (value != 0 && Long.MAX_VALUE / Math.abs(value) < Math.abs(product)) {
+                        // Overflow detected, switch to BigInteger
+                        bigProduct = BigInteger.valueOf(product).multiply(BigInteger.valueOf(value));
+                    } else {
+                        product *= value;
+                    }
+                } else {
+                    // Already using BigInteger
+                    bigProduct = bigProduct.multiply(BigInteger.valueOf(value));
+                }
             }
         }
-        return product;
+
+        return (bigProduct != null) ? bigProduct : product;
     }
+
 
 }
