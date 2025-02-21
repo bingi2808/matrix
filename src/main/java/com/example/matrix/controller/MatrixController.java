@@ -1,49 +1,33 @@
 package com.example.matrix.controller;
 
-import com.example.matrix.service.MatrixService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import com.example.matrix.operations.MatrixOperation;
+import com.example.matrix.service.MatrixParserService;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/matrix")
 public class MatrixController {
 
-    private final MatrixService matrixService;
+    private final MatrixParserService parserService;
+    private final Map<String, MatrixOperation> operations;
 
-    public MatrixController(MatrixService matrixService) {
-        this.matrixService = matrixService;
+    public MatrixController(MatrixParserService parserService, Map<String, MatrixOperation> operations) {
+        this.parserService = parserService;
+        this.operations = operations;
     }
 
-    @PostMapping("/echo")
-    public String echoMatrix(@RequestParam("file") MultipartFile file) throws Exception {
-        int[][] matrix = matrixService.parseCsvFile(file);
-        return matrixService.formatMatrix(matrix);
-    }
+    @PostMapping("/{operation}")
+    public Object processMatrix(@PathVariable String operation, @RequestParam("file") MultipartFile file) throws Exception {
+        int[][] matrix = parserService.parseCsvFile(file);
 
-    @PostMapping("/invert")
-    public String invertMatrix(@RequestParam("file") MultipartFile file) throws Exception {
-        int[][] matrix = matrixService.parseCsvFile(file);
-        return matrixService.formatMatrix(matrixService.invertMatrix(matrix));
-    }
+        MatrixOperation matrixOperation = operations.get(operation);
+        if (matrixOperation == null) {
+            throw new IllegalArgumentException("Invalid operation: " + operation);
+        }
 
-    @PostMapping("/flatten")
-    public String flattenMatrix(@RequestParam("file") MultipartFile file) throws Exception {
-        int[][] matrix = matrixService.parseCsvFile(file);
-        return matrixService.flattenMatrix(matrix);
-    }
-
-    @PostMapping("/sum")
-    public int sumMatrix(@RequestParam("file") MultipartFile file) throws Exception {
-        int[][] matrix = matrixService.parseCsvFile(file);
-        return matrixService.sumMatrix(matrix);
-    }
-
-    @PostMapping("/multiply")
-    public Number multiplyMatrix(@RequestParam("file") MultipartFile file) throws Exception {
-        int[][] matrix = matrixService.parseCsvFile(file);
-        return matrixService.multiplyMatrix(matrix);
+        return matrixOperation.perform(matrix);
     }
 }
