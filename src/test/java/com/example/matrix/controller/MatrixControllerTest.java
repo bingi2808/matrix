@@ -1,62 +1,67 @@
 package com.example.matrix.controller;
 
-import com.example.matrix.service.MatrixService;
+import com.example.matrix.operations.MatrixOperation;
+import com.example.matrix.service.MatrixParserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class MatrixControllerTest {
 
-    private MockMvc mockMvc;
+    @Mock
+    private MatrixParserService parserService;
 
     @Mock
-    private MatrixService matrixService;
+    private MatrixOperation matrixOperation;
 
     @InjectMocks
     private MatrixController matrixController;
 
-    private MockMultipartFile mockFile;
+    private Map<String, MatrixOperation> operations;
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(matrixController).build();
-        String csvData = "1,2,3\n4,5,6\n7,8,9";
-        mockFile = new MockMultipartFile("file", "matrix.csv", MediaType.TEXT_PLAIN_VALUE, csvData.getBytes(StandardCharsets.UTF_8));
+        operations = new HashMap<>();
+        operations.put("testOperation", matrixOperation);
+        matrixController = new MatrixController(parserService, operations);
     }
 
     @Test
-    void echoMatrix_ShouldReturnMatrix() throws Exception {
-        when(matrixService.parseCsvFile(any())).thenReturn(new int[][]{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}});
-        when(matrixService.formatMatrix(any())).thenReturn("1,2,3\n4,5,6\n7,8,9");
+    void testProcessMatrix_ValidOperation() throws Exception {
+        MultipartFile file = new MockMultipartFile("file", "matrix.csv", "text/csv", "1,2,3\n4,5,6\n7,8,9".getBytes());
+        int[][] matrix = {{1, 2, 3}, {4, 5, 6}, {7, 8, 9}};
+        Object expectedResult = new int[][]{{2, 4, 6}, {8, 10, 12}, {14, 16, 18}};
 
-        mockMvc.perform(multipart("/matrix/echo").file(mockFile))
-                .andExpect(status().isOk())
-                .andExpect(content().string("1,2,3\n4,5,6\n7,8,9"));
+        when(parserService.parseCsvFile(file)).thenReturn(matrix);
+        when(matrixOperation.perform(matrix)).thenReturn(expectedResult);
+
+        Object result = matrixController.processMatrix("testOperation", file);
+
+        assertEquals(expectedResult, result);
+        verify(parserService).parseCsvFile(file);
+        verify(matrixOperation).perform(matrix);
     }
 
     @Test
-    void sumMatrix_ShouldReturnSum() throws Exception {
-        when(matrixService.parseCsvFile(any())).thenReturn(new int[][]{{1, 2, 3}, {4, 5, 6}, {7, 8, 9}});
-        when(matrixService.sumMatrix(any())).thenReturn(45);
+    void testProcessMatrix_InvalidOperation() {
+        MultipartFile file = new MockMultipartFile("file", "matrix.csv", "text/csv", "1,2,3\n4,5,6\n7,8,9".getBytes());
 
-        mockMvc.perform(multipart("/matrix/sum").file(mockFile))
-                .andExpect(status().isOk())
-                .andExpect(content().string("45"));
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            matrixController.processMatrix("invalidOperation", file);
+        });
+
+        assertEquals("Invalid operation: invalidOperation", exception.getMessage());
     }
 }
