@@ -23,7 +23,7 @@ public class MatrixService {
             }
 
             int rowCount = records.size();
-            int colCount = records.get(0).size();
+            int colCount = records.getFirst().size();
             int[][] matrix = new int[rowCount][colCount];
 
             for (int i = 0; i < rowCount; i++) {
