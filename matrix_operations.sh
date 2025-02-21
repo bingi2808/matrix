@@ -1,6 +1,7 @@
 #!/bin/bash
 
 BASE_URL="http://localhost:8080/matrix"
+BASE_PATH="input-files"
 FILE_PATH=""
 
 while true; do
@@ -9,7 +10,7 @@ while true; do
         read FILE_PATH
     fi
 
-    if [ ! -f "$FILE_PATH" ]; then
+    if [ ! -f "$BASE_PATH/$FILE_PATH" ]; then
         echo "Error: File does not exist! Please enter a valid file."
         FILE_PATH=""
         continue
@@ -31,7 +32,7 @@ while true; do
     esac
 
     echo "Running $ENDPOINT operation..."
-    curl -X POST -F "file=@$FILE_PATH" "$BASE_URL/$ENDPOINT" -w "\n"
+    curl -X POST -F "file=@$BASE_PATH/$FILE_PATH" "$BASE_URL/$ENDPOINT" -w "\n"
     echo
 
 done
